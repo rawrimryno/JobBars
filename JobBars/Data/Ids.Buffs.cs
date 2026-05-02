@@ -12,6 +12,8 @@ namespace JobBars.Data {
         ShadowWall = 747,
         DarkMind = 746,
         ShadowedVigil = 3835,
+        TheBlackestNight = 1178,
+        Oblation = 2682,
 
         // WAR =========
         InnerRelease = 1177,

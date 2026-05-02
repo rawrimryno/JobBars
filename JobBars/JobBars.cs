@@ -144,7 +144,7 @@ namespace JobBars {
             CurrentJob = JobIds.OTHER;
         }
 
-        private void OnZoneChange( ushort newZoneId ) {
+        private void OnZoneChange( uint newZoneId ) {
             if( !NodeBuilder.IsLoaded ) return;
 
             GaugeManager?.Reset();

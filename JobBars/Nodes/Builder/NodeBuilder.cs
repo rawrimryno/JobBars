@@ -141,20 +141,28 @@ namespace JobBars.Nodes.Builder {
             } );
         }
 
+        // https://github.com/MidoriKami/SortaKinda/blob/96e95fe5fd00a7d2b3f9441e520d99caa6bc7463/SortaKinda/Addons/InventoryController.cs#L19
+
         private void DetachFromNative( AtkUnitBase* addon, string name ) {
             Dalamud.Framework.RunOnFrameworkThread( () => {
                 if( !IsAttached.Contains( name ) ) return;
 
                 if( name == UiHelper.BuffGaugeAttachAddonName ) {
                     if( BuffRoot != null ) {
+                        Dalamud.Log( $"Disposing Buff" );
+
                         BuffRoot.Dispose();
                         BuffRoot = null;
                     }
                     if( CursorRoot != null ) {
+                        Dalamud.Log( $"Disposing Cursor" );
+
                         CursorRoot.Dispose();
                         CursorRoot = null;
                     }
                     if( GaugeRoot != null ) {
+                        Dalamud.Log( $"Disposing Gauge" );
+
                         GaugeRoot.Dispose();
                         GaugeRoot = null;
                     }
@@ -162,6 +170,8 @@ namespace JobBars.Nodes.Builder {
 
                 if( name == UiHelper.CooldownAttachAddonName ) {
                     if( CooldownRoot != null ) {
+                        Dalamud.Log( $"Disposing Cooldown" );
+
                         CooldownRoot.Dispose();
                         CooldownRoot = null;
                     }
@@ -169,6 +179,8 @@ namespace JobBars.Nodes.Builder {
 
                 if( name == "_PartyList" ) {
                     if( HighlightRoot != null ) {
+                        Dalamud.Log( $"Disposing Highlight" );
+
                         HighlightRoot.Dispose();
                         HighlightRoot = null;
                     }
