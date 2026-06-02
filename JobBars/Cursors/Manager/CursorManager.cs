@@ -1,10 +1,11 @@
+using Dalamud.Bindings.ImGui;
 using Dalamud.Interface.Utility;
 using FFXIVClientStructs.FFXIV.Component.GUI;
-using Dalamud.Bindings.ImGui;
 using JobBars.Atk;
 using JobBars.Data;
 using JobBars.Helper;
-using JobBars.Nodes.Builder;
+using JobBars.Nodes.Cursor;
+using KamiToolKit.Overlay.UiOverlay;
 using System;
 
 namespace JobBars.Cursors.Manager {
@@ -13,9 +14,32 @@ namespace JobBars.Cursors.Manager {
         private ElementColor InnerColor;
         private ElementColor OuterColor;
 
+        private OverlayController? Controller;
+        private CursorRoot? Root;
+
         public CursorManager() : base( "##JobBars_Cursor" ) {
             InnerColor = ColorConstants.GetColor( JobBars.Configuration.CursorInnerColor, ColorConstants.MpPink );
             OuterColor = ColorConstants.GetColor( JobBars.Configuration.CursorOuterColor, ColorConstants.HealthGreen );
+
+            Controller = new();
+        }
+
+        public void OnLogin() {
+            if( Root != null ) return;
+            Controller!.CreateNode( () => {
+                Root = new( this );
+                return Root;
+            } );
+        }
+
+        public void Hide() {
+            Root?.IsVisible = false;
+        }
+
+        public void Dispose() {
+            Controller?.Dispose();
+            Controller = null;
+            Root = null;
         }
 
         public void SetJob( JobIds job ) {
@@ -23,19 +47,21 @@ namespace JobBars.Cursors.Manager {
         }
 
         public void Tick() {
+            if( Root == null ) return;
+
             if( UiHelper.CalcDoHide( JobBars.Configuration.CursorsEnabled, JobBars.Configuration.CursorHideOutOfCombat, JobBars.Configuration.CursorHideWeaponSheathed ) ) {
-                JobBars.NodeBuilder.CursorRoot.IsVisible = false;
+                Root!.IsVisible = false;
                 return;
             }
             else {
-                JobBars.NodeBuilder.CursorRoot.IsVisible = true;
+                Root!.IsVisible = true;
             }
 
             // ============================
 
             if( CurrentCursor == null ) {
-                JobBars.NodeBuilder.CursorRoot.SetInner( 0, 1f );
-                JobBars.NodeBuilder.CursorRoot.SetOuter( 0, 1f );
+                Root!.SetInner( 0, 1f );
+                Root!.SetOuter( 0, 1f );
                 return;
             }
 
@@ -47,27 +73,25 @@ namespace JobBars.Cursors.Manager {
 
                 var dragging = *( ( byte* )new IntPtr( atkStage ) + 0x137 );
                 if( JobBars.Configuration.CursorHideWhenHeld && dragging != 1 ) {
-                    JobBars.NodeBuilder.CursorRoot.IsVisible = false;
+                    Root!.IsVisible = false;
                     return;
                 }
-                JobBars.NodeBuilder.CursorRoot.IsVisible = true;
+                Root!.IsVisible = true;
 
                 if( pos.X > 0 && pos.Y > 0 && pos.X < viewport.Size.X && pos.Y < viewport.Size.Y && dragging == 1 ) {
-                    NodeBuilder.SetPositionGlobal( JobBars.NodeBuilder.CursorRoot, pos );
+                    Root.Position = pos;
                 }
             }
             else {
-                JobBars.NodeBuilder.CursorRoot.IsVisible = true;
-                NodeBuilder.SetPositionGlobal(
-                    JobBars.NodeBuilder.CursorRoot,
-                    JobBars.Configuration.CursorPosition == CursorPositionType.Middle ? viewport.Size / 2 : JobBars.Configuration.CursorCustomPosition );
+                Root!.IsVisible = true;
+                Root.Position = JobBars.Configuration.CursorPosition == CursorPositionType.Middle ? viewport.Size / 2 : JobBars.Configuration.CursorCustomPosition;
             }
 
-            JobBars.NodeBuilder.CursorRoot.SetInnerColor( InnerColor );
-            JobBars.NodeBuilder.CursorRoot.SetOuterColor( OuterColor );
+            Root!.SetInnerColor( InnerColor );
+            Root!.SetOuterColor( OuterColor );
 
-            JobBars.NodeBuilder.CursorRoot.SetInner( CurrentCursor.GetInner(), JobBars.Configuration.CursorInnerScale );
-            JobBars.NodeBuilder.CursorRoot.SetOuter( CurrentCursor.GetOuter(), JobBars.Configuration.CursorOuterScale );
+            Root!.SetInner( CurrentCursor.GetInner(), JobBars.Configuration.CursorInnerScale );
+            Root!.SetOuter( CurrentCursor.GetOuter(), JobBars.Configuration.CursorOuterScale );
         }
     }
 }

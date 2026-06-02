@@ -1,26 +1,28 @@
 using FFXIVClientStructs.FFXIV.Component.GUI;
 using JobBars.Atk;
-using KamiToolKit;
-using KamiToolKit.Classes;
+using JobBars.Cursors.Manager;
 using KamiToolKit.Enums;
-using KamiToolKit.Nodes;
+using KamiToolKit.Overlay.UiOverlay;
 using KamiToolKit.Premade.Node.Simple;
 
 namespace JobBars.Nodes.Cursor {
-    public unsafe class CursorRoot : NodeBase<AtkResNode> {
+    public unsafe class CursorRoot : OverlayNode {
+        public override OverlayLayer OverlayLayer => OverlayLayer.BehindUserInterface;
+
         private readonly SimpleImageNode Inner;
         private readonly SimpleImageNode Outer;
 
         private bool StaticCircleInner = true;
         private bool StaticCircleOuter = true;
 
-        public CursorRoot() : base( NodeType.Res ) {
+        private readonly CursorManager Manager;
+
+        public CursorRoot( CursorManager manager ) {
+            Manager = manager;
             Size = new( 44, 48 );
-            NodeFlags = NodeFlags.Visible | NodeFlags.Fill | NodeFlags.AnchorLeft | NodeFlags.AnchorTop;
 
             Inner = new SimpleImageNode() {
                 Size = new( 44, 46 ),
-                NodeFlags = NodeFlags.Visible | NodeFlags.AnchorLeft | NodeFlags.AnchorTop,
                 WrapMode = WrapMode.Tile,
                 ImageNodeFlags = 0
             };
@@ -29,7 +31,6 @@ namespace JobBars.Nodes.Cursor {
 
             Outer = new SimpleImageNode() {
                 Size = new( 44, 46 ),
-                NodeFlags = NodeFlags.Visible | NodeFlags.AnchorLeft | NodeFlags.AnchorTop,
                 WrapMode = WrapMode.Tile,
                 ImageNodeFlags = 0
             };
@@ -103,5 +104,7 @@ namespace JobBars.Nodes.Cursor {
             Outer.MultiplyColor = color.MultiplyColor;
             Outer.AddColor = color.AddColor;
         }
+
+        protected override void OnUpdate() => Manager.Tick();
     }
 }

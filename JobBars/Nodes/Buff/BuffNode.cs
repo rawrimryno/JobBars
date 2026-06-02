@@ -2,13 +2,12 @@ using FFXIVClientStructs.FFXIV.Component.GUI;
 using JobBars.Atk;
 using JobBars.Data;
 using JobBars.Helper;
-using KamiToolKit;
 using KamiToolKit.Enums;
 using KamiToolKit.Nodes;
 using KamiToolKit.Premade.Node.Simple;
 
 namespace JobBars.Nodes.Buff {
-    public unsafe class BuffNode : NodeBase<AtkResNode> {
+    public unsafe class BuffNode : SimpleOverlayNode {
         public static ushort WIDTH => ( ushort )( JobBars.Configuration.BuffSquare ? 40 : 36 );
         public static ushort HEIGHT => ( ushort )( JobBars.Configuration.BuffSquare ? 40 : 28 );
 
@@ -20,13 +19,10 @@ namespace JobBars.Nodes.Buff {
         private ActionIds LastAction = 0;
         public ActionIds IconId => LastAction;
 
-        private string CurrentText = "";
-
-        public BuffNode() : base( NodeType.Res ) {
+        public BuffNode() {
             MultiplyColor = new( 1f, 1f, 1f );
 
             Icon = new IconImageNode() {
-                NodeFlags = NodeFlags.Visible | NodeFlags.AnchorLeft | NodeFlags.AnchorTop,
                 WrapMode = WrapMode.Tile,
                 ImageNodeFlags = 0,
                 IconId = 405
@@ -36,7 +32,6 @@ namespace JobBars.Nodes.Buff {
                 Height = 1,
                 TextureCoordinates = new( 365, 4 ),
                 TextureSize = new( 37, 37 ),
-                NodeFlags = NodeFlags.Visible,
                 WrapMode = WrapMode.Tile,
                 ImageNodeFlags = 0,
                 TexturePath = "ui/uld/IconA_Frame.tex"
@@ -45,8 +40,7 @@ namespace JobBars.Nodes.Buff {
             Border = new SimpleNineGridNode() {
                 Position = new( -4, -3 ),
                 Offsets = new( 5, 5, 5, 5 ),
-                PartsRenderType = ( byte )PartsRenderType.RenderType ,
-                NodeFlags = NodeFlags.Visible,
+                PartsRenderType = ( byte )PartsRenderType.RenderType,
                 TexturePath = "ui/uld/IconA_Frame.tex"
 
             };
@@ -54,12 +48,9 @@ namespace JobBars.Nodes.Buff {
             Text = new TextNode() {
                 FontSize = ( byte )JobBars.Configuration.BuffTextSize_v2,
                 LineSpacing = ( byte )JobBars.Configuration.BuffTextSize_v2,
-                NodeFlags = NodeFlags.Visible,
                 TextColor = new( 1, 1, 1, 1 ),
                 TextOutlineColor = new( 0, 0, 0, 1 ),
-                TextId = 0,
-                TextFlags = TextFlags.Glare,
-                String = "",
+                TextFlags = TextFlags.Glare
             };
             Text.Node->AlignmentFontType = 52;
 
@@ -67,11 +58,9 @@ namespace JobBars.Nodes.Buff {
             Overlay.AttachNode( this );
             Border.AttachNode( this );
             Text.AttachNode( this );
-
-            Update();
         }
 
-        public void Update() {
+        public void UpdateSettings() {
             Size = new( WIDTH, HEIGHT );
             Text.Size = new( WIDTH, HEIGHT );
             Icon.Size = new( WIDTH, HEIGHT );
@@ -114,10 +103,8 @@ namespace JobBars.Nodes.Buff {
         }
 
         public void SetText( string text ) {
-            if( text != CurrentText ) {
-                Text.String = text;
-                CurrentText = text;
-            }
+            if( text == null ) return;
+            Text.String = text;
             Text.IsVisible = true;
         }
 

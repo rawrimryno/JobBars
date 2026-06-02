@@ -1,14 +1,12 @@
 using FFXIVClientStructs.FFXIV.Component.GUI;
 using JobBars.Data;
 using JobBars.Helper;
-using KamiToolKit;
-using KamiToolKit.Classes;
 using KamiToolKit.Enums;
 using KamiToolKit.Nodes;
 using KamiToolKit.Premade.Node.Simple;
 
 namespace JobBars.Nodes.Cooldown {
-    public unsafe class CooldownNode : NodeBase<AtkResNode> {
+    public unsafe class CooldownNode : SimpleOverlayNode {
         public static readonly ushort WIDTH = 30;
         public static readonly ushort HEIGHT = 30;
 
@@ -19,7 +17,7 @@ namespace JobBars.Nodes.Cooldown {
         private ActionIds LastAction = 0;
         public ActionIds IconId => LastAction;
 
-        public CooldownNode() : base( NodeType.Res ) {
+        public CooldownNode() {
             Size = new( WIDTH, HEIGHT );
 
             Icon = new IconImageNode() {
@@ -49,9 +47,7 @@ namespace JobBars.Nodes.Cooldown {
                 LineSpacing = ( byte )HEIGHT,
                 TextColor = new( 1, 1, 1, 1 ),
                 TextOutlineColor = new( 0, 0, 0, 1 ),
-                TextId = 0,
-                TextFlags = TextFlags.Glare,
-                String = "",
+                TextFlags = TextFlags.Glare
             };
             Text.Node->AlignmentFontType = 52;
 
@@ -79,6 +75,7 @@ namespace JobBars.Nodes.Cooldown {
         }
 
         public void SetText( string text ) {
+            if( text == null ) return;
             Text.FontSize = text.Length > 2 ? ( byte )17 : ( byte )21;
             Text.String = text;
             Text.IsVisible = true;

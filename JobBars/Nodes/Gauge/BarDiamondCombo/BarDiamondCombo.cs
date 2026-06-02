@@ -1,4 +1,6 @@
 using JobBars.Atk;
+using JobBars.Gauges.Types.Bar;
+using JobBars.Gauges.Types.BarDiamondCombo;
 using JobBars.Helper;
 using JobBars.Nodes.Gauge.Bar;
 using JobBars.Nodes.Gauge.Diamond;
@@ -41,8 +43,6 @@ namespace JobBars.Nodes.Gauge.BarDiamondCombo {
 
         public void SetBarColor( ElementColor color ) => Bar.SetColor( color );
 
-        public void SetDiamondVlaue( int idx, bool value ) => Diamond.SetValue( idx, value );
-
         public void SetDiamondColor( int idx, ElementColor color ) => Diamond.SetColor( idx, color );
 
         public void SetDiamondValue( int idx, bool value ) => Diamond.SetValue( idx, value );
@@ -54,17 +54,23 @@ namespace JobBars.Nodes.Gauge.BarDiamondCombo {
 
         public void SetPercent( float value ) => Bar.SetPercent( value );
 
-        public void Clear() => Diamond.Clear();
-
-        public unsafe void SetSplitPosition( Vector2 pos ) {
-            var p = UiHelper.GetGlobalPosition( JobBars.NodeBuilder.GaugeRoot.Node );
-            var pScale = UiHelper.GetGlobalScale( JobBars.NodeBuilder.GaugeRoot.Node );
-
-            var x = ( pos.X - p.X ) / pScale.X;
-            var y = ( pos.Y - p.Y ) / pScale.Y;
-
-            Bar.Position = new( x, y );
-            Diamond.Position = new( x, y + 10 );
+        public void SetSplitPosition( GaugeRoot root, Vector2 pos ) {
+            Bar.SetSplitPosition( root, pos );
+            Diamond.SetSplitPosition( root, new( pos.X, pos.Y + 10 ) );
         }
+
+        // =====================
+
+        public void Tick( IGaugeBarDiamondComboInterface tracker ) {
+            Bar.Tick( tracker  );
+            Diamond.Tick( tracker );
+
+            SetVisible( !tracker.GetConfig().HideWhenInactive || tracker.GetActive() );
+            SetScale( tracker.GetConfig().Scale );
+        }
+
+        public int GetHeight( IGaugeBarDiamondComboInterface tracker ) => ( int )( tracker.GetConfig().Scale * 50 );
+
+        public int GetWidth( IGaugeBarDiamondComboInterface tracker ) => ( int )( tracker.GetConfig().Scale * 160 );
     }
 }

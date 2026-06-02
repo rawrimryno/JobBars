@@ -1,19 +1,21 @@
 using FFXIVClientStructs.FFXIV.Component.GUI;
-using KamiToolKit;
-using KamiToolKit.Classes;
-using KamiToolKit.Nodes;
+using JobBars.Cooldowns.Manager;
+using KamiToolKit.Premade.Node.Simple;
 using System.Collections.Generic;
-using System.Linq;
 
 namespace JobBars.Nodes.Cooldown {
-    public unsafe class CooldownRoot : NodeBase<AtkResNode> {
+    public unsafe class CooldownRoot : SimpleOverlayNode {
         public readonly List<CooldownRow> Rows = [];
 
         public static readonly int MAX_BUFFS = 25;
         public static int BUFFS_HORIZONTAL => JobBars.Configuration.BuffHorizontal;
 
-        public CooldownRoot() : base( NodeType.Res ) {
+        private readonly CooldownManager Manager;
+
+        public CooldownRoot( CooldownManager manager ) {
+            Manager = manager;
             Size = new( 100, 100 );
+
             Position = JobBars.Configuration.CooldownPosition;
             NodeFlags = NodeFlags.Visible;
 
@@ -21,10 +23,10 @@ namespace JobBars.Nodes.Cooldown {
 
             Rows.ForEach( x => x.AttachNode(this) );
 
-            Update();
+            UpdateSpacing();
         }
 
-        public void Update() {
+        public void UpdateSpacing() {
             for( var i = 0; i < 8; i++ ) Rows[i].Position = new( 0, JobBars.Configuration.CooldownsSpacing * i );
         }
 

@@ -1,6 +1,5 @@
 using Dalamud.Bindings.ImGui;
 using JobBars.Data;
-using JobBars.Nodes.Builder;
 using System.Numerics;
 
 namespace JobBars.Buffs.Manager {
@@ -9,32 +8,27 @@ namespace JobBars.Buffs.Manager {
 
         private readonly InfoBox<BuffManager> PositionInfoBox = new() {
             Label = "Position",
-            ContentsAction = ( BuffManager manager ) => {
+            ContentsAction = manager => {
                 ImGui.Checkbox( "Position Locked" + manager.Id, ref manager.LOCKED );
 
                 ImGui.SetNextItemWidth( 25f );
                 if( ImGui.InputInt( "Buffs per line" + manager.Id, ref JobBars.Configuration.BuffHorizontal, 0 ) ) {
                     JobBars.Configuration.Save();
-                    JobBars.NodeBuilder.BuffRoot.Update();
                 }
 
                 if( ImGui.Checkbox( "Right-to-left" + manager.Id, ref JobBars.Configuration.BuffRightToLeft ) ) {
                     JobBars.Configuration.Save();
-                    JobBars.NodeBuilder.BuffRoot.Update();
                 }
 
                 if( ImGui.Checkbox( "Bottom-to-top" + manager.Id, ref JobBars.Configuration.BuffBottomToTop ) ) {
                     JobBars.Configuration.Save();
-                    JobBars.NodeBuilder.BuffRoot.Update();
                 }
 
                 if( ImGui.Checkbox( "Square buffs" + manager.Id, ref JobBars.Configuration.BuffSquare ) ) {
                     JobBars.Configuration.Save();
-                    JobBars.NodeBuilder.BuffRoot.Update();
                 }
 
                 if( ImGui.InputFloat( "Scale" + manager.Id, ref JobBars.Configuration.BuffScale ) ) {
-                    UpdatePositionScale();
                     JobBars.Configuration.Save();
                 }
 
@@ -47,7 +41,7 @@ namespace JobBars.Buffs.Manager {
 
         private readonly InfoBox<BuffManager> HideWhenInfoBox = new() {
             Label = "Hide When",
-            ContentsAction = ( BuffManager manager ) => {
+            ContentsAction = manager => {
                 if( ImGui.Checkbox( "Out of combat", ref JobBars.Configuration.BuffHideOutOfCombat ) ) JobBars.Configuration.Save();
                 if( ImGui.Checkbox( "Weapon is sheathed", ref JobBars.Configuration.BuffHideWeaponSheathed ) ) JobBars.Configuration.Save();
             }
@@ -74,7 +68,6 @@ namespace JobBars.Buffs.Manager {
 
             if( ImGui.Checkbox( "Thin buff border", ref JobBars.Configuration.BuffThinBorder ) ) {
                 JobBars.Configuration.Save();
-                JobBars.NodeBuilder.BuffRoot.Update();
             }
 
             ImGui.SetNextItemWidth( 50f );
@@ -85,7 +78,6 @@ namespace JobBars.Buffs.Manager {
                 if( JobBars.Configuration.BuffTextSize_v2 <= 0 ) JobBars.Configuration.BuffTextSize_v2 = 1;
                 if( JobBars.Configuration.BuffTextSize_v2 > 255 ) JobBars.Configuration.BuffTextSize_v2 = 255;
                 JobBars.Configuration.Save();
-                JobBars.NodeBuilder.BuffRoot.Update();
             }
         }
 
@@ -104,7 +96,6 @@ namespace JobBars.Buffs.Manager {
             JobBars.SetWindowPosition( "Buff Bar##BuffPosition", pos );
             JobBars.Configuration.BuffPosition = pos;
             JobBars.Configuration.Save();
-            NodeBuilder.SetPositionGlobal( JobBars.NodeBuilder.BuffRoot, JobBars.Configuration.BuffPosition );
         }
     }
 }

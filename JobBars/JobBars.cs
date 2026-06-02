@@ -10,29 +10,24 @@ using JobBars.Data;
 using JobBars.Gauges.Manager;
 using JobBars.Helper;
 using JobBars.Icons.Manager;
-using JobBars.Nodes.Builder;
 using KamiToolKit;
 using System;
 
 namespace JobBars {
-    public unsafe partial class JobBars : IDalamudPlugin {
+    public partial class JobBars : IDalamudPlugin {
         public static Configuration Configuration { get; private set; }
-        public static NodeBuilder NodeBuilder { get; private set; }
-        public static GaugeManager GaugeManager { get; private set; }
-        public static BuffManager BuffManager { get; private set; }
-        public static CooldownManager CooldownManager { get; private set; }
-        public static CursorManager CursorManager { get; private set; }
-        public static IconManager IconManager { get; private set; }
+        public static GaugeManager? GaugeManager { get; private set; }
+        public static BuffManager? BuffManager { get; private set; }
+        public static CooldownManager? CooldownManager { get; private set; }
+        public static CursorManager? CursorManager { get; private set; }
+        public static IconManager? IconManager { get; private set; }
 
         public static JobIds CurrentJob { get; private set; } = JobIds.OTHER;
-
-        public static AttachAddon AttachAddon { get; private set; } = AttachAddon.Chatbox;
-        public static AttachAddon CooldownAttachAddon { get; private set; } = AttachAddon.PartyList;
 
         public JobBars( IDalamudPluginInterface pluginInterface ) {
             pluginInterface.Create<Dalamud>();
 
-            KamiToolKitLibrary.Initialize( pluginInterface );
+            KamiToolKitLibrary.Initialize( pluginInterface, "JobBars" );
 
             UiHelper.Setup();
             ColorConstants.SetupColors();
@@ -56,24 +51,20 @@ namespace JobBars {
             ReceiveActionEffectHook.Enable();
             ActorControlSelfHook.Enable();
 
-            AttachAddon = Configuration.AttachAddon;
-            CooldownAttachAddon = Configuration.CooldownAttachAddon;
-
-            NodeBuilder = new NodeBuilder();
-            BuffManager = new BuffManager();
-            CooldownManager = new CooldownManager();
-            GaugeManager = new GaugeManager();
-            CursorManager = new CursorManager();
-            IconManager = new IconManager();
-
             Dalamud.PluginInterface.UiBuilder.Draw += BuildSettingsUi;
             Dalamud.PluginInterface.UiBuilder.OpenMainUi += OpenConfig;
             Dalamud.PluginInterface.UiBuilder.OpenConfigUi += OpenConfig;
             SetupCommands();
 
-            if( Dalamud.ClientState.IsLoggedIn ) OnLogin();
-            Dalamud.Framework.Update += OnFrameworkUpdate;
+            BuffManager = new BuffManager();
+            CooldownManager = new CooldownManager();
+            GaugeManager = new GaugeManager();
+            CursorManager = new CursorManager();
+            IconManager = new IconManager();
             Dalamud.ClientState.Login += OnLogin;
+            if( Dalamud.ClientState.IsLoggedIn ) OnLogin();
+
+            Dalamud.Framework.Update += OnFrameworkUpdate;
             Dalamud.ClientState.Logout += OnLogout;
             Dalamud.ClientState.TerritoryChanged += OnZoneChange;
 
@@ -89,53 +80,47 @@ namespace JobBars {
             RemoveCommands();
 
             Dalamud.Framework.Update -= OnFrameworkUpdate;
-            Dalamud.ClientState.Login -= OnLogin;
             Dalamud.ClientState.Logout -= OnLogout;
+            Dalamud.ClientState.Login -= OnLogin;
             Dalamud.ClientState.TerritoryChanged -= OnZoneChange;
 
             Animation.Dispose();
-            NodeBuilder?.Dispose();
+            BuffManager?.Dispose();
+            IconManager?.Dispose();
+            CursorManager?.Dispose();
+            GaugeManager?.Dispose();
+            CooldownManager?.Dispose();
             KamiToolKitLibrary.Dispose();
         }
 
         private void OnFrameworkUpdate( IFramework framework ) {
             if( Dalamud.ClientState.IsPvP ||
                 !Dalamud.ClientState.IsLoggedIn ||
-                Dalamud.Condition[ConditionFlag.BetweenAreas] || Dalamud.Condition[ConditionFlag.BetweenAreas51] || Dalamud.Condition[ConditionFlag.CreatingCharacter] ||
-                !NodeBuilder.IsLoaded ) {
+                Dalamud.Condition[ConditionFlag.BetweenAreas] || Dalamud.Condition[ConditionFlag.BetweenAreas51] || Dalamud.Condition[ConditionFlag.CreatingCharacter] ) {
 
-                if( NodeBuilder.GaugeRoot != null ) NodeBuilder.GaugeRoot.IsVisible = false;
-                if( NodeBuilder.BuffRoot != null ) NodeBuilder.BuffRoot.IsVisible = false;
-                if( NodeBuilder.CooldownRoot != null ) NodeBuilder.CooldownRoot.IsVisible = false;
+                BuffManager?.Hide();
+                GaugeManager?.Hide();
+                CooldownManager?.Hide();
+                CursorManager?.Hide();
 
                 return;
             }
 
-            UiHelper.UpdateMp( Dalamud.Objects.LocalPlayer.CurrentMp );
+            UiHelper.UpdateMp( Dalamud.Objects.LocalPlayer!.CurrentMp );
             UiHelper.UpdatePlayerStatus();
 
             Animation.Tick();
             CheckForJobChange();
             UpdatePartyMembers();
 
-            GaugeManager.Tick();
-            BuffManager.Tick();
-            CooldownManager.Tick();
-            CursorManager.Tick();
-            IconManager.Tick();
-
-            var time = DateTime.Now;
-            var millis = time.Second * 1000 + time.Millisecond;
-            var percent = ( float )( millis % 1000 ) / 1000;
-
-            NodeBuilder.Tick( Configuration.GaugePulse ? percent : 0f );
-            GaugeManager.UpdatePositionScale();
-            BuffManager.UpdatePositionScale();
-            CooldownManager.UpdatePositionScale();
+            IconManager?.Tick();
         }
 
+        // So we don't load textures before Penumbra
         private void OnLogin() {
-            NodeBuilder.Load();
+            GaugeManager?.OnLogin();
+            BuffManager?.OnLogin();
+            CursorManager?.OnLogin();
         }
 
         private void OnLogout( int type, int code ) {
@@ -145,8 +130,6 @@ namespace JobBars {
         }
 
         private void OnZoneChange( uint newZoneId ) {
-            if( !NodeBuilder.IsLoaded ) return;
-
             GaugeManager?.Reset();
             IconManager?.Reset();
             BuffManager?.Reset();
@@ -154,13 +137,13 @@ namespace JobBars {
         }
 
         private static void CheckForJobChange() {
-            var job = UiHelper.IdToJob( Dalamud.Objects.LocalPlayer.ClassJob.RowId );
+            var job = UiHelper.IdToJob( Dalamud.Objects.LocalPlayer?.ClassJob.RowId ?? 0 );
             if( job != CurrentJob ) {
                 CurrentJob = job;
                 Dalamud.Log( $"SWITCHED JOB TO {CurrentJob}" );
-                GaugeManager.SetJob( CurrentJob );
-                CursorManager.SetJob( CurrentJob );
-                IconManager.SetJob( CurrentJob );
+                GaugeManager?.SetJob( CurrentJob );
+                CursorManager?.SetJob( CurrentJob );
+                IconManager?.SetJob( CurrentJob );
             }
         }
 
@@ -174,7 +157,6 @@ namespace JobBars {
         }
 
         private void OpenConfig() {
-            if( !NodeBuilder.IsLoaded ) return;
             Visible = true;
         }
 

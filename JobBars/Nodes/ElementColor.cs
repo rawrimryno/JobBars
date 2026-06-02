@@ -28,25 +28,16 @@ namespace JobBars.Atk {
         }
 
         public readonly Vector3 AddColor => new( AddRed / 255f, AddGreen / 255f, AddBlue / 255f );
+
+        public readonly Vector3 AddColorKeyframe => new( AddRed, AddGreen, AddBlue );
+
         public readonly Vector3 MultiplyColor => new( MultiplyRed / 100f, MultiplyGreen / 100f, MultiplyBlue / 100f );
+
+        public readonly Vector3 MultiplyColorKeyframe => new( MultiplyRed, MultiplyGreen, MultiplyBlue );
 
         public readonly void SetColor( NodeBase node ) {
             node.MultiplyColor = MultiplyColor;
             node.AddColor = AddColor;
-        }
-
-        public readonly void SetColorPulse( NodeBase node, float percent ) {
-            // 0 = color
-            // 50 = color + 100
-            // 100 = color
-
-            var add = ( short )( 75 * ( 1f - 2f * Math.Abs( percent - 0.5f ) ) ); // 0 -> 1 -> 0
-            var currentRed = ( short )( AddRed + add );
-            var currentGreen = ( short )( AddGreen + add );
-            var currentBlue = ( short )( AddBlue + add );
-
-            node.MultiplyColor = MultiplyColor;
-            node.AddColor = new( currentRed / 255f, currentGreen / 255f, currentBlue / 255f );
         }
     }
 
@@ -83,19 +74,6 @@ namespace JobBars.Atk {
             node->MultiplyRed_2 = multRed;
             node->MultiplyGreen_2 = multGreen;
             node->MultiplyBlue_2 = multBlue;
-        }
-
-        public static unsafe void SetColorPulse( AtkResNode* node, ElementColor color, float percent ) {
-            // 0 = color
-            // 50 = color + 100
-            // 100 = color
-
-            var add = ( short )( 75 * ( 1f - 2f * Math.Abs( percent - 0.5f ) ) ); // 0 -> 1 -> 0
-            var currentRed = ( short )( color.AddRed + add );
-            var currentGreen = ( short )( color.AddGreen + add );
-            var currentBlue = ( short )( color.AddBlue + add );
-
-            SetColor( node, currentRed, currentGreen, currentBlue, color.MultiplyRed, color.MultiplyGreen, color.MultiplyBlue );
         }
 
         // ======== COLORS ======

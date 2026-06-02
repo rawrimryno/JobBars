@@ -24,12 +24,6 @@ namespace JobBars.Data {
         CustomPosition
     }
 
-    public enum AttachAddon {
-        Chatbox,
-        HP_MP_Bars,
-        PartyList
-    }
-
     public struct CustomCooldownProps {
         public string Name;
         public string Id;
@@ -42,12 +36,6 @@ namespace JobBars.Data {
     [Serializable]
     public class Configuration : IPluginConfiguration {
         public int Version { get; set; } = 2;
-
-        public bool Use4K = true;
-
-        public AttachAddon AttachAddon = AttachAddon.Chatbox;
-
-        public AttachAddon CooldownAttachAddon = AttachAddon.PartyList;
 
         // ====== GAUGES ======
 
@@ -174,7 +162,7 @@ namespace JobBars.Data {
         [NonSerialized]
         private static readonly Random random = new();
 
-        private static string RandomString( int length ) => new( Enumerable.Repeat( "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789", length ).Select( x => x[random.Next( x.Length )] ).ToArray() );
+        private static string RandomString( int length ) => new( [.. Enumerable.Repeat( "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789", length ).Select( x => x[random.Next( x.Length )] )] );
 
         public void RemoveCustomCooldown( string nameId ) {
             CustomCooldown.RemoveAll( x => x.GetNameId() == nameId );

@@ -23,9 +23,6 @@ namespace JobBars.Cooldowns {
         private readonly ItemSelector CustomTriggerBuff = new( "Trigger", "##CustomCD_Buff", UiHelper.StatusList );
         private readonly ItemSelector CustomIcon = new( "Icon", "##CustomCD_Icon", UiHelper.ActionList );
 
-        private static CooldownManager Manager => JobBars.CooldownManager;
-
-
         public CustomCooldownDialog() : base( "Custom Cooldown" ) { }
 
         public override void DrawBody() {
@@ -68,8 +65,8 @@ namespace JobBars.Cooldowns {
                         Icon = ( ActionIds )icon.Data.Id,
                         Triggers = [selected.Data]
                     };
-                    Manager.AddCustomCooldown( SelectedJob, newName, newProps );
-                    Manager.ResetUi();
+                    JobBars.CooldownManager?.AddCustomCooldown( SelectedJob, newName, newProps );
+                    JobBars.CooldownManager?.ResetUi();
                 }
             }
             else {

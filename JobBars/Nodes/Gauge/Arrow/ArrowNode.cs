@@ -1,13 +1,11 @@
+using FFXIVClientStructs.FFXIV.Component.GUI;
 using JobBars.Atk;
-using JobBars.Data;
-using KamiToolKit;
-using KamiToolKit.Classes;
-using KamiToolKit.Nodes;
+using JobBars.Gauges.Types.Arrow;
+using KamiToolKit.Timelines;
 using System.Collections.Generic;
-using System.Linq;
 
 namespace JobBars.Nodes.Gauge.Arrow {
-    public unsafe class ArrowNode : GaugeNode {
+    public class ArrowNode : GaugeNode {
         public readonly List<ArrowTick> Ticks = [];
 
         public static readonly int MAX_ITEMS = 12;
@@ -16,7 +14,7 @@ namespace JobBars.Nodes.Gauge.Arrow {
             Size = new( 160, 46 );
 
             for( var idx = 0; idx < MAX_ITEMS; idx++ ) {
-                var tick = new ArrowTick {
+                var tick = new ArrowTick( this ) {
                     Position = new( 18 * idx, 0 )
                 };
                 Ticks.Add( tick );
@@ -31,17 +29,31 @@ namespace JobBars.Nodes.Gauge.Arrow {
 
         public void SetColor( int idx, ElementColor color ) => Ticks[idx].SetColor( color );
 
-        public void SetValue( int idx, bool value ) {
-            var prevVisible = Ticks[idx].Selected.IsVisible;
-            Ticks[idx].Selected.IsVisible = value;
+        public void SetValue( int idx, bool value ) => Ticks[idx].SetValue( value );
 
-            if( value && !prevVisible ) Animation.AddAnim( ( float f ) => Ticks[idx].Selected.Scale = new( f, f ), 0.2f, 2.5f, 1.0f );
+        public void Sync() {
+            foreach( var tick in Ticks ) {
+                tick.ArrowContainer.Timeline?.PlayAnimation( JobBars.Configuration.GaugePulse ? 101 : 17 ); // Either play pulse or solid color
+            }
         }
 
-        public void Clear() {
-            for( var idx = 0; idx < MAX_ITEMS; idx++ ) SetValue( idx, false );
+        // ====================
+
+        public void Tick( IGaugeArrowInterface tracker ) {
+            SetVisible( !tracker.GetConfig().HideWhenInactive || tracker.GetActive() );
+            SetScale( tracker.GetConfig().Scale );
+
+            SetMaxValue( tracker.GetTotalMaxTicks() );
+
+            for( var i = 0; i < tracker.GetCurrentMaxTicks(); i++ ) {
+                var trackerIndex = tracker.GetReverseFill() ? ( tracker.GetCurrentMaxTicks() - i - 1 ) : i;
+                SetValue( i, tracker.GetTickValue( trackerIndex ) );
+                SetColor( i, tracker.GetTickColor( trackerIndex ) );
+            }
         }
 
-        public void Tick( float percent ) => Ticks.ForEach( t => t.Tick( percent ) );
+        public int GetHeight( IGaugeArrowInterface tracker ) => ( int )( tracker.GetConfig().Scale * 32 );
+
+        public int GetWidth( IGaugeArrowInterface tracker ) => ( int )( tracker.GetConfig().Scale * ( 32 + 18 * ( tracker.GetCurrentMaxTicks() - 1 ) ) );
     }
 }

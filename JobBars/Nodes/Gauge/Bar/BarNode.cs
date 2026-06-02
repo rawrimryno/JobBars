@@ -1,9 +1,8 @@
 using FFXIVClientStructs.FFXIV.Component.GUI;
 using JobBars.Atk;
 using JobBars.Data;
+using JobBars.Gauges.Types.Bar;
 using JobBars.Helper;
-using KamiToolKit;
-using KamiToolKit.Classes;
 using KamiToolKit.Enums;
 using KamiToolKit.Nodes;
 using KamiToolKit.Premade.Node.Simple;
@@ -14,42 +13,38 @@ namespace JobBars.Nodes.Gauge.Bar {
     public unsafe class BarNode : GaugeNode {
         private static readonly int MAX_SEGMENTS = 6;
 
-        private readonly ResNode GaugeContainer;
+        private readonly SimpleOverlayNode GaugeContainer;
 
         private readonly ImageNode Background;
-        private readonly ResNode BarContainer;
+        private readonly SimpleOverlayNode BarContainer;
         private readonly NineGridNode BarSecondary;
         private readonly NineGridNode BarMain;
         private readonly List<ImageNode> Separators = [];
         private readonly ImageNode Frame;
         private readonly NineGridNode Indicator;
 
-        private readonly ResNode TextContainer;
+        private readonly SimpleOverlayNode TextContainer;
         private readonly TextNode Text;
         private readonly NineGridNode TextBlur;
 
-        private string CurrentText;
         private float LastPercent = 1f;
-        private Animation Animation;
+        private Animation Animation = null;
         private float[] Segments = null;
 
         private bool Vertical = false;
         private bool TextSwap = false;
 
         public BarNode() : base() {
-            NodeFlags |= NodeFlags.AnchorLeft | NodeFlags.AnchorTop;
             Size = new( 160, 46 );
 
-            GaugeContainer = new ResNode() {
-                Size = new( 160, 32 ),
-                NodeFlags = NodeFlags.Visible | NodeFlags.AnchorLeft | NodeFlags.AnchorTop,
+            GaugeContainer = new SimpleOverlayNode() {
+                Size = new( 160, 32 )
             };
 
             Background = new SimpleImageNode() {
                 Size = new( 160, 20 ),
                 TextureCoordinates = new( 0, 100 ),
                 TextureSize = new( 160, 20 ),
-                NodeFlags = NodeFlags.Visible | NodeFlags.AnchorLeft | NodeFlags.AnchorTop,
                 WrapMode = WrapMode.Tile,
                 ImageNodeFlags = 0,
                 TexturePath = "ui/uld/Parameter_Gauge.tex"
@@ -57,9 +52,8 @@ namespace JobBars.Nodes.Gauge.Bar {
 
             // ========= BAR ==============
 
-            BarContainer = new ResNode() {
-                Size = new( 160, 20 ),
-                NodeFlags = NodeFlags.Visible | NodeFlags.AnchorLeft | NodeFlags.AnchorTop,
+            BarContainer = new SimpleOverlayNode() {
+                Size = new( 160, 20 )
             };
 
             BarMain = new SimpleNineGridNode() {
@@ -68,7 +62,6 @@ namespace JobBars.Nodes.Gauge.Bar {
                 TextureCoordinates = new( 6, 40 ),
                 TextureSize = new( 148, 20 ),
                 PartsRenderType = ( byte )PartsRenderType.RenderType,
-                NodeFlags = NodeFlags.Visible | NodeFlags.AnchorLeft | NodeFlags.AnchorTop,
                 TexturePath = "ui/uld/Parameter_Gauge.tex"
             };
 
@@ -78,7 +71,6 @@ namespace JobBars.Nodes.Gauge.Bar {
                 TextureCoordinates = new( 6, 40 ),
                 TextureSize = new( 148, 20 ),
                 PartsRenderType = ( byte )PartsRenderType.RenderType,
-                NodeFlags = NodeFlags.Visible | NodeFlags.AnchorLeft | NodeFlags.AnchorTop,
                 TexturePath = "ui/uld/Parameter_Gauge.tex"
             };
 
@@ -89,7 +81,6 @@ namespace JobBars.Nodes.Gauge.Bar {
                     Position = new( 0, 5 ),
                     TextureCoordinates = new( 10, 3 ),
                     TextureSize = new( 10, 5 ),
-                    NodeFlags = NodeFlags.Visible | NodeFlags.AnchorLeft | NodeFlags.AnchorTop,
                     WrapMode = WrapMode.Tile,
                     ImageNodeFlags = 0,
                     TexturePath = "ui/uld/Parameter_Gauge.tex"
@@ -102,7 +93,6 @@ namespace JobBars.Nodes.Gauge.Bar {
                 Size = new( 160, 20 ),
                 TextureCoordinates = new( 0, 0 ),
                 TextureSize = new( 160, 20 ),
-                NodeFlags = NodeFlags.Visible,
                 WrapMode = WrapMode.Tile,
                 ImageNodeFlags = 0,
                 TexturePath = "ui/uld/Parameter_Gauge.tex"
@@ -116,16 +106,14 @@ namespace JobBars.Nodes.Gauge.Bar {
                 LeftOffset = 15,
                 RightOffset = 15,
                 PartsRenderType = ( byte )PartsRenderType.RenderType,
-                NodeFlags = NodeFlags.Visible,
                 TexturePath = "ui/uld/Parameter_Gauge.tex"
             };
 
             // ======= TEXT ==============
 
-            TextContainer = new ResNode() {
+            TextContainer = new SimpleOverlayNode() {
                 Size = new( 47, 40 ),
-                Position = new( 112, 6 ),
-                NodeFlags = NodeFlags.Visible,
+                Position = new( 112, 6 )
             };
 
             Text = new TextNode() {
@@ -133,14 +121,11 @@ namespace JobBars.Nodes.Gauge.Bar {
                 Size = new( 17, 30 ),
                 FontSize = 18,
                 LineSpacing = 18,
-                NodeFlags = NodeFlags.Visible | NodeFlags.AnchorLeft | NodeFlags.AnchorRight,
                 TextColor = new( 1, 1, 1, 1 ),
                 TextOutlineColor = new( 157f / 255f, 131f / 255f, 91f / 255f, 1 ),
-                TextId = 0,
                 TextFlags = TextFlags.Glare,
-                String = "",
             };
-            Text.Node->AlignmentFontType = 21;
+            Text.Node->AlignmentFontType = 21; // TODO
 
             TextBlur = new SimpleNineGridNode() {
                 Size = new( 47, 48 ),
@@ -148,31 +133,28 @@ namespace JobBars.Nodes.Gauge.Bar {
                 LeftOffset = 28,
                 RightOffset = 28,
                 PartsRenderType = 128,
-                NodeFlags = NodeFlags.Visible | NodeFlags.Fill | NodeFlags.AnchorLeft | NodeFlags.AnchorTop,
                 TexturePath = "ui/uld/JobHudNumBg.tex"
             };
 
-            BarSecondary.AttachNode( BarContainer );
-            BarMain.AttachNode( BarContainer );
-            Separators.ForEach( x => x.AttachNode( BarContainer ) );
+            GaugeContainer.AttachNode( this );
+            TextContainer.AttachNode( this );
+
+            TextBlur.AttachNode( TextContainer );
+            Text.AttachNode( TextContainer );
 
             Background.AttachNode( GaugeContainer );
             BarContainer.AttachNode( GaugeContainer );
             Frame.AttachNode( GaugeContainer );
             Indicator.AttachNode( GaugeContainer );
 
-            TextBlur.AttachNode( TextContainer );
-            Text.AttachNode( TextContainer );
-
-            GaugeContainer.AttachNode( this );
-            TextContainer.AttachNode( this );
+            BarSecondary.AttachNode( BarContainer );
+            BarMain.AttachNode( BarContainer );
+            Separators.ForEach( x => x.AttachNode( BarContainer ) );
         }
 
         public void SetText( string text ) {
-            if( text != CurrentText ) {
-                Text.String = text;
-                CurrentText = text;
-            }
+            if( text == null ) return;
+            Text.String = text;
 
             var size = text.Length * 17;
             if( Vertical ) {
@@ -231,13 +213,12 @@ namespace JobBars.Nodes.Gauge.Bar {
             LastPercent = value;
         }
 
-        public void SetIndicatorPercent( float indicatorPercent, float valuePercent ) {
+        public void SetIndicatorPercent( float indicatorPercent ) {
             if( indicatorPercent <= 0f || indicatorPercent >= 1f ) {
                 Indicator.IsVisible = false;
                 return;
             }
 
-            // var canSlidecast = valuePercent >= ( 1f - indicatorPercent );
             Indicator.IsVisible = true;
             var width = ( int )( 160 * indicatorPercent );
             Indicator.Size = new( width, 20 );
@@ -299,5 +280,25 @@ namespace JobBars.Nodes.Gauge.Bar {
             Segments = null;
             foreach( var item in Separators ) item.IsVisible = false;
         }
+
+        // ========================
+
+        public void Tick( IGaugeBarInterface tracker ) {
+            SetVisible( !tracker.GetConfig().HideWhenInactive || tracker.GetActive() );
+            SetScale( tracker.GetConfig().Scale );
+
+            SetSegments( tracker.GetBarSegments() );
+            SetColor( tracker.GetColor() );
+            SetTextColor( tracker.GetBarDanger() ? ColorConstants.Red : ColorConstants.NoColor );
+            SetLayout( tracker.GetBarTextSwap(), tracker.GetVertical() );
+            SetText( tracker.GetBarText() );
+            SetTextVisible( tracker.GetBarTextVisible() );
+            SetPercent( tracker.GetBarPercent() );
+            SetIndicatorPercent( tracker.GetBarIndicatorPercent() );
+        }
+
+        public int GetHeight( IGaugeBarInterface tracker ) => ( int )( tracker.GetConfig().Scale * ( tracker.GetVertical() ? 160 : 46 ) );
+
+        public int GetWidth( IGaugeBarInterface tracker ) => ( int )( tracker.GetConfig().Scale * ( tracker.GetVertical() ? 55 : 160 ) );
     }
 }

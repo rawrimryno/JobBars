@@ -2,6 +2,9 @@ using FFXIVClientStructs.FFXIV.Client.System.Framework;
 using FFXIVClientStructs.FFXIV.Client.UI;
 using FFXIVClientStructs.FFXIV.Component.GUI;
 using JobBars.GameStructs;
+using KamiToolKit.Extensions;
+using System;
+using System.Numerics;
 
 namespace JobBars.Helper {
     public unsafe partial class UiHelper {
@@ -19,47 +22,14 @@ namespace JobBars.Helper {
 
         public static AtkUnitBase* GetAddon( string name ) => AtkStage.Instance()->RaptureAtkUnitManager->GetAddonByName( name );
 
-        public static AddonActionCross* GetCrossBar() => ( AddonActionCross* )GetAddon( "_ActionCross" );
-
-        public static AddonActionDoubleCrossBase* GetLeftDoubleCrossBar() => ( AddonActionDoubleCrossBase* )GetAddon( "_ActionDoubleCrossL" );
-
-        public static AddonActionDoubleCrossBase* GetRightDoubleCrossBar() => ( AddonActionDoubleCrossBase* )GetAddon( "_ActionDoubleCrossR" );
-
-        public static AtkUnitBase* ChatLogAddon => GetAddon( "ChatLog" );
-
-        public static AtkUnitBase* ParameterAddon => GetAddon( "_ParameterWidget" );
-
-        public static AddonPartyList* PartyListAddon => ( AddonPartyList* )GetAddon( "_PartyList" );
-
         public static float PartyListOffset() {
-            var partyList = PartyListAddon;
+            var partyList = ( AddonPartyList* )GetAddon( "_PartyList" );
             if( partyList == null ) return 0;
             if( partyList->AtkUnitBase.UldManager.NodeList == null ) return 0;
-            if( partyList->AtkUnitBase.UldManager.NodeList[3] == null ) return 0;
 
-            return partyList->AtkUnitBase.UldManager.NodeList[3]->Y;
+            var offsetNode = partyList->AtkUnitBase.UldManager.SearchNodeById( 2 );
+            if( offsetNode == null ) return 0;
+            return offsetNode->Y;
         }
-
-        public static AtkUnitBase* BuffGaugeAttachAddon => GetAddon( JobBars.AttachAddon );
-
-        public static AtkUnitBase* CooldownAttachAddon => GetAddon( JobBars.CooldownAttachAddon );
-
-        public static AtkUnitBase* GetAddon( Data.AttachAddon addon ) => addon switch {
-            Data.AttachAddon.Chatbox => ChatLogAddon,
-            Data.AttachAddon.HP_MP_Bars => ParameterAddon,
-            Data.AttachAddon.PartyList => ( AtkUnitBase* )PartyListAddon,
-            _ => null
-        };
-
-        public static string BuffGaugeAttachAddonName => GetAddonNameName( JobBars.AttachAddon );
-
-        public static string CooldownAttachAddonName => GetAddonNameName( JobBars.CooldownAttachAddon );
-
-        public static string GetAddonNameName( Data.AttachAddon addon ) => addon switch {
-            Data.AttachAddon.Chatbox => "ChatLog",
-            Data.AttachAddon.HP_MP_Bars => "_ParameterWidget",
-            Data.AttachAddon.PartyList => "_PartyList",
-            _ => null
-        };
     }
 }

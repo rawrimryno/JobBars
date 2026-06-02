@@ -1,6 +1,5 @@
 using Dalamud.Bindings.ImGui;
 using JobBars.Data;
-using JobBars.Nodes.Builder;
 using System;
 using System.Numerics;
 
@@ -12,22 +11,19 @@ namespace JobBars.Gauges.Manager {
 
         private readonly InfoBox<GaugeManager> PositionInfoBox = new() {
             Label = "Position",
-            ContentsAction = ( GaugeManager manager ) => {
+            ContentsAction = manager => {
                 ImGui.Checkbox( "Position locked" + manager.Id, ref manager.LOCKED );
 
                 if( JobBars.Configuration.GaugePositionType != GaugePositionType.Split ) {
                     if( ImGui.Checkbox( "Horizontal gauges", ref JobBars.Configuration.GaugeHorizontal ) ) {
-                        manager.UpdatePositionScale();
                         JobBars.Configuration.Save();
                     }
 
                     if( ImGui.Checkbox( "Bottom-to-top", ref JobBars.Configuration.GaugeBottomToTop ) ) {
-                        manager.UpdatePositionScale();
                         JobBars.Configuration.Save();
                     }
 
                     if( ImGui.Checkbox( "Align right", ref JobBars.Configuration.GaugeAlignRight ) ) {
-                        manager.UpdatePositionScale();
                         JobBars.Configuration.Save();
                     }
                 }
@@ -35,8 +31,6 @@ namespace JobBars.Gauges.Manager {
                 if( JobBars.DrawCombo( ValidGaugePositionType, JobBars.Configuration.GaugePositionType, "Gauge positioning", manager.Id, out var newPosition ) ) {
                     JobBars.Configuration.GaugePositionType = newPosition;
                     JobBars.Configuration.Save();
-
-                    manager.UpdatePositionScale();
                 }
 
                 if( JobBars.Configuration.GaugePositionType == GaugePositionType.Global ) { // GLOBAL POSITIONING
@@ -53,7 +47,6 @@ namespace JobBars.Gauges.Manager {
                 }
 
                 if( ImGui.InputFloat( "Scale" + manager.Id, ref JobBars.Configuration.GaugeScale ) ) {
-                    manager.UpdatePositionScale();
                     JobBars.Configuration.Save();
                 }
             }
@@ -61,7 +54,7 @@ namespace JobBars.Gauges.Manager {
 
         private readonly InfoBox<GaugeManager> HideWhenInfoBox = new() {
             Label = "Hide When",
-            ContentsAction = ( GaugeManager manager ) => {
+            ContentsAction = manager => {
                 if( ImGui.Checkbox( "Out of combat", ref JobBars.Configuration.GaugesHideOutOfCombat ) ) JobBars.Configuration.Save();
                 if( ImGui.Checkbox( "Weapon sheathed", ref JobBars.Configuration.GaugesHideWeaponSheathed ) ) JobBars.Configuration.Save();
             }
@@ -106,14 +99,12 @@ namespace JobBars.Gauges.Manager {
             JobBars.SetWindowPosition( "Gauge Bar##GaugePosition", pos );
             JobBars.Configuration.GaugePositionGlobal = pos;
             JobBars.Configuration.Save();
-            NodeBuilder.SetPositionGlobal( JobBars.NodeBuilder.GaugeRoot, pos );
         }
 
         private static void SetGaugePositionPerJob( JobIds job, Vector2 pos ) {
             JobBars.SetWindowPosition( $"Gauge Bar ({job})##GaugePosition", pos );
             JobBars.Configuration.GaugePerJobPosition.Set( $"{job}", pos );
             JobBars.Configuration.Save();
-            NodeBuilder.SetPositionGlobal( JobBars.NodeBuilder.GaugeRoot, pos );
         }
 
         // ==========================================
@@ -124,10 +115,6 @@ namespace JobBars.Gauges.Manager {
             ImGui.Unindent();
 
             if( SelectedJob != CurrentJob ) return;
-            if( newVisual ) {
-                UpdateVisuals();
-                UpdatePositionScale();
-            }
             if( reset ) Reset();
         }
 

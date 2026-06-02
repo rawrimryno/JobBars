@@ -1,21 +1,26 @@
-using FFXIVClientStructs.FFXIV.Component.GUI;
+using JobBars.Gauges.Manager;
 using JobBars.Nodes.Gauge.Arrow;
 using JobBars.Nodes.Gauge.Bar;
 using JobBars.Nodes.Gauge.Diamond;
 using KamiToolKit;
-using KamiToolKit.Classes;
-using KamiToolKit.Nodes;
+using KamiToolKit.Enums;
+using KamiToolKit.Overlay.UiOverlay;
 using System.Collections.Generic;
 
 namespace JobBars.Nodes.Gauge {
-    public unsafe class GaugeRoot : NodeBase<AtkResNode> {
-        private static readonly int MAX_GAUGES = 7;
+    public class GaugeRoot : OverlayNode {
+        public override OverlayLayer OverlayLayer => OverlayLayer.BehindUserInterface;
+
+        public static readonly int MAX_GAUGES = 7;
 
         public readonly List<BarNode> Bars = [];
         public readonly List<ArrowNode> Arrows = [];
         public readonly List<DiamondNode> Diamonds = [];
 
-        public GaugeRoot() : base( NodeType.Res ) {
+        private readonly GaugeManager Manager;
+
+        public GaugeRoot( GaugeManager manager ) {
+            Manager = manager;
             Size = new( 256, 100 );
 
             for( var i = 0; i < MAX_GAUGES; i++ ) {
@@ -37,5 +42,7 @@ namespace JobBars.Nodes.Gauge {
             foreach( var item in Arrows ) item.IsVisible = false;
             foreach( var item in Diamonds ) item.IsVisible = false;
         }
+
+        protected override void OnUpdate() => Manager.Tick();
     }
 }

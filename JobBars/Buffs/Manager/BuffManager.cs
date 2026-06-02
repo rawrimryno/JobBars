@@ -1,7 +1,10 @@
+using FFXIVClientStructs.FFXIV.Component.GUI;
 using JobBars.Data;
 using JobBars.Helper;
 using JobBars.Nodes.Buff;
-using JobBars.Nodes.Builder;
+using JobBars.Nodes.Highlight;
+using KamiToolKit.Controllers;
+using KamiToolKit.Overlay.UiOverlay;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -13,8 +16,55 @@ namespace JobBars.Buffs.Manager {
         private readonly Dictionary<JobIds, List<BuffConfig>> CustomBuffs = [];
         private List<BuffConfig> ApplyToTargetCustomBuffs => [.. CustomBuffs.Values.SelectMany( x => x.Where( y => y.ApplyToTarget ) )];
 
+        private OverlayController? Controller;
+        private AddonController? PartyListController;
+
+        private BuffRoot? Root;
+        private HighlightRoot? Highlight;
+
         public BuffManager() : base( "##JobBars_Buffs" ) {
             ApplyToTargetBuffs.AddRange( [.. JobToValue.Values.SelectMany( x => x.Where( y => y.ApplyToTarget ) )] );
+
+            Controller = new();
+
+            PartyListController = new AddonController {
+                AddonName = "_PartyList",
+                OnSetup = SetupPartyList,
+                OnFinalize = ResetPartyList,
+            };
+            PartyListController.Enable();
+        }
+
+        public void OnLogin() {
+            if( Root != null ) return;
+            Controller!.CreateNode( () => {
+                Root = new( this );
+                return Root;
+            } );
+        }
+
+        public void Hide() {
+            Root?.IsVisible = false;
+        }
+
+        private void SetupPartyList( AtkUnitBase* addon ) {
+            Highlight = new();
+            Highlight.AttachNode( addon->GetNodeById( 21 ) );
+        }
+
+        private void ResetPartyList( AtkUnitBase* addon ) {
+            Highlight?.Dispose();
+            Highlight = null;
+        }
+
+        public void Dispose() {
+            PartyListController?.Dispose();
+            PartyListController = null;
+            Highlight = null;
+
+            Controller?.Dispose();
+            Controller = null;
+            Root = null;
         }
 
         public BuffConfig[] GetBuffConfigs( JobIds job ) {
@@ -29,42 +79,52 @@ namespace JobBars.Buffs.Manager {
 
         public void PerformAction( Item action, uint objectId ) {
             if( !JobBars.Configuration.BuffBarEnabled ) return;
-            if( !JobBars.Configuration.BuffIncludeParty && objectId != Dalamud.Objects.LocalPlayer.GameObjectId ) return;
+            if( !JobBars.Configuration.BuffIncludeParty && objectId != Dalamud.Objects.LocalPlayer?.GameObjectId ) return;
 
             foreach( var member in ObjectIdToMember.Values ) member.ProcessAction( action, objectId );
         }
 
         public void Tick() {
+            if( Root == null || Highlight == null ) return;
+
+            // Visibility
+
             if( UiHelper.CalcDoHide( JobBars.Configuration.BuffBarEnabled, JobBars.Configuration.BuffHideOutOfCombat, JobBars.Configuration.BuffHideWeaponSheathed ) ) {
-                JobBars.NodeBuilder.HighlightRoot.HideAll();
-                JobBars.NodeBuilder.BuffRoot.IsVisible = false;
+                Highlight!.HideAll();
+                Root!.IsVisible = false;
                 return;
             }
             else {
-                JobBars.NodeBuilder.BuffRoot.IsVisible = true;
+                Root!.IsVisible = true;
             }
 
-            // ============================
+            // Global position + scale
+
+            Root.Position = JobBars.Configuration.BuffPosition;
+            Root.Scale = new( JobBars.Configuration.BuffScale, JobBars.Configuration.BuffScale );
+            Root?.UpdateSettings();
+
+            // Evaluate each buff
 
             Dictionary<ulong, BuffPartyMember> newObjectIdToMember = [];
             HashSet<BuffTracker> activeBuffs = [];
 
-            if( JobBars.PartyMembers == null ) Dalamud.Error( "PartyMembers is NULL" );
+            if( JobBars.PartyMembers == null ) return;
 
-            for( var idx = 0; idx < JobBars.PartyMembers.Count; idx++ ) {
+            for( var idx = 0; idx < JobBars.PartyMembers!.Count; idx++ ) {
                 var partyMember = JobBars.PartyMembers[idx];
 
                 if( partyMember == null || partyMember?.Job == JobIds.OTHER || partyMember?.ObjectId == 0 ) continue;
-                if( !JobBars.Configuration.BuffIncludeParty && partyMember.ObjectId != Dalamud.Objects.LocalPlayer.GameObjectId ) continue;
+                if( !JobBars.Configuration.BuffIncludeParty && partyMember?.ObjectId != Dalamud.Objects.LocalPlayer?.GameObjectId ) continue;
 
-                var member = ObjectIdToMember.TryGetValue( partyMember.ObjectId, out var _member ) ? _member : new BuffPartyMember( partyMember.ObjectId, partyMember.IsPlayer );
+                var member = ObjectIdToMember.TryGetValue( partyMember!.ObjectId, out var _member ) ? _member : new BuffPartyMember( partyMember.ObjectId, partyMember.IsPlayer );
                 member.Tick( activeBuffs, partyMember, out var highlight, out var partyText );
-                JobBars.NodeBuilder.HighlightRoot.Highlights[idx].IsVisible = highlight;
+                Highlight!.Highlights[idx].IsVisible = highlight;
                 newObjectIdToMember[partyMember.ObjectId] = member;
             }
 
-            for( var idx = JobBars.PartyMembers.Count; idx < 8; idx++ ) {
-                JobBars.NodeBuilder.HighlightRoot.Highlights[idx].IsVisible = false;
+            for( var idx = JobBars.PartyMembers!.Count; idx < 8; idx++ ) {
+                Highlight!.Highlights[idx].IsVisible = false;
             }
 
             var buffIdx = 0;
@@ -73,19 +133,17 @@ namespace JobBars.Buffs.Manager {
                 activeBuffs.OrderBy( b => b.Id )
             ) {
                 if( buffIdx >= ( BuffRoot.MAX_BUFFS - 1 ) ) break;
-                buff.TickUi( JobBars.NodeBuilder.BuffRoot.Buffs[buffIdx] );
+                buff.TickUi( Root!.Buffs[buffIdx] );
                 buffIdx++;
             }
+
+            // Hide all the rest
+
             for( var i = buffIdx; i < BuffRoot.MAX_BUFFS; i++ ) {
-                JobBars.NodeBuilder.BuffRoot.Buffs[i].IsVisible = false;
+                Root!.Buffs[i].IsVisible = false;
             }
 
             ObjectIdToMember = newObjectIdToMember;
-        }
-
-        public static void UpdatePositionScale() {
-            NodeBuilder.SetPositionGlobal( JobBars.NodeBuilder.BuffRoot, JobBars.Configuration.BuffPosition );
-            NodeBuilder.SetScaleGlobal( JobBars.NodeBuilder.BuffRoot, JobBars.Configuration.BuffScale );
         }
 
         public void ResetUi() => ObjectIdToMember.Clear();

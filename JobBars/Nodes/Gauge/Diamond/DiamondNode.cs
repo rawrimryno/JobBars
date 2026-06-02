@@ -1,9 +1,8 @@
+using FFXIVClientStructs.FFXIV.Component.GUI;
 using JobBars.Atk;
-using KamiToolKit;
-using KamiToolKit.Classes;
-using KamiToolKit.Nodes;
+using JobBars.Gauges.Types.Diamond;
+using KamiToolKit.Timelines;
 using System.Collections.Generic;
-using System.Linq;
 
 namespace JobBars.Nodes.Gauge.Diamond {
     public unsafe class DiamondNode : GaugeNode {
@@ -15,13 +14,19 @@ namespace JobBars.Nodes.Gauge.Diamond {
             Size = new( 160, 46 );
 
             for( var idx = 0; idx < MAX_ITEMS; idx++ ) {
-                var tick = new DiamondTick {
+                var tick = new DiamondTick( this ) {
                     Position = new( 20 * idx, 0 )
                 };
                 Ticks.Add( tick );
             }
 
             Ticks.ForEach( x => x.AttachNode( this ) );
+        }
+
+        public void Sync() {
+            foreach( var tick in Ticks ) {
+                tick.DiamondContainer.Timeline?.PlayAnimation( JobBars.Configuration.GaugePulse ? 101 : 17 ); // Either play pulse or solid color
+            }
         }
 
         public void SetMaxValue( int value ) {
@@ -39,11 +44,10 @@ namespace JobBars.Nodes.Gauge.Diamond {
 
         public void SetColor( int idx, ElementColor color ) => Ticks[idx].SetColor( color );
 
-        public void SetValue( int idx, bool value ) {
-            Ticks[idx].SelectedContainer.IsVisible = value;
-        }
+        public void SetValue( int idx, bool value ) => Ticks[idx].SetValue( value );
 
         public void SetText( int idx, string text ) {
+            if( text == null ) return;
             Ticks[idx].Text.String = text;
             Ticks[idx].Text.IsVisible = true;
         }
@@ -56,10 +60,27 @@ namespace JobBars.Nodes.Gauge.Diamond {
             Ticks[idx].Text.IsVisible = false;
         }
 
-        public void Clear() {
-            for( var idx = 0; idx < MAX_ITEMS; idx++ ) SetValue( idx, false );
+        // ====================
+
+        public void Tick( IGaugeDiamondInterface tracker ) {
+            SetVisible( !tracker.GetConfig().HideWhenInactive || tracker.GetActive() );
+            SetScale( tracker.GetConfig().Scale );
+
+            SetMaxValue( tracker.GetTotalMaxTicks() );
+            SetTextVisible( tracker.GetDiamondTextVisible() );
+
+            for( var i = 0; i < tracker.GetCurrentMaxTicks(); i++ ) {
+                var trackerIndex = tracker.GetReverseFill() ? ( tracker.GetCurrentMaxTicks() - i - 1 ) : i;
+                SetValue( i, tracker.GetTickValue( trackerIndex ) );
+                SetColor( i, tracker.GetTickColor( trackerIndex ) );
+                if( tracker.GetDiamondTextVisible()) {
+                    SetText( i, tracker.GetDiamondText( trackerIndex ) );
+                }
+            }
         }
 
-        public void Tick( float percent ) => Ticks.ForEach( t => t.Tick( percent ) );
+        public int GetHeight( IGaugeDiamondInterface tracker ) => ( int )( tracker.GetConfig().Scale * ( tracker.GetDiamondTextVisible() ? 40 : 32 ) );
+
+        public int GetWidth( IGaugeDiamondInterface tracker ) => ( int )( tracker.GetConfig().Scale * ( 32 + 20 * ( tracker.GetCurrentMaxTicks() - 1 ) ) );
     }
 }
